@@ -94,6 +94,18 @@ struct Cli {
     /// Print output as JSON
     #[clap(long)]
     json: bool,
+
+    /// Output in Claude-compatible XML format
+    #[clap(long)]
+    xml: bool,
+
+    /// Custom instructions to be included in the prompt
+    #[clap(long)]
+    instructions: Option<String>,
+
+    /// Optional Path to an instructions file
+    #[clap(long)]
+    instructions_file: Option<PathBuf>,
 }
 
 fn main() -> Result<()> {
@@ -192,7 +204,36 @@ fn main() -> Result<()> {
     handle_undefined_variables(&mut data, &template_content)?;
 
     // Render the template
-    let rendered = render_template(&handlebars, template_name, &data)?;
+    let rendered = if args.xml {
+        // Use the Claude formatter for XML output
+        use code2prompt::claude::ClaudeFormatter;
+        
+        // Get instructions if provided
+        let instructions = get_instructions(&args)?;
+        
+        ClaudeFormatter::format(
+            &args.path,
+            &tree,
+            &files,
+            if args.diff { Some(&git_diff) } else { None },
+            if !git_diff_branch.is_empty() { Some(&git_diff_branch) } else { None },
+            if !git_log_branch.is_empty() { Some(&git_log_branch) } else { None },
+            instructions.as_deref(),
+        )
+    } else {
+        // Use the existing template rendering
+        let mut data = json!({
+            "absolute_code_path": label(&args.path),
+            "source_tree": tree,
+            "files": files,
+            "git_diff": git_diff,
+            "git_diff_branch": git_diff_branch,
+            "git_log_branch": git_log_branch
+        });
+
+        handle_undefined_variables(&mut data, &template_content)?;
+        render_template(&handlebars, template_name, &data)?
+    };
 
     // Display Token Count
     let token_count = if args.tokens {
@@ -326,5 +367,16 @@ fn get_template(args: &Cli) -> Result<(String, &str)> {
             include_str!("default_template.hbs").to_string(),
             DEFAULT_TEMPLATE_NAME,
         ))
+    }
+}
+
+fn get_instructions(args: &Cli) -> Result<Option<String>> {
+    if let Some(instructions) = &args.instructions {
+        Ok(Some(instructions.clone()))
+    } else if let Some(instructions_file) = &args.instructions_file {
+        Ok(Some(std::fs::read_to_string(instructions_file)
+            .context("Failed to read instructions file")?))
+    } else {
+        Ok(None)
     }
 }

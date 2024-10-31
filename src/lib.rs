@@ -1,9 +1,11 @@
+pub mod claude;
 pub mod filter;
 pub mod git;
 pub mod path;
 pub mod template;
 pub mod token;
 
+pub use claude::ClaudeFormatter;
 pub use filter::should_include_file;
 pub use git::{get_git_diff, get_git_diff_between_branches, get_git_log};
 pub use path::{label, traverse_directory};
