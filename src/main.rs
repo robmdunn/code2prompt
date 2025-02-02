@@ -106,6 +106,18 @@ struct Cli {
     /// Optional Path to an instructions file
     #[clap(long)]
     instructions_file: Option<PathBuf>,
+    
+    /// Follow symlinks
+    #[clap(short = 'f', long)]
+    follow_symlinks: bool,
+
+    /// Include hidden directories and files
+    #[clap(long)]
+    hidden: bool,
+
+    /// Skip .gitignore rules
+    #[clap(long)]
+    no_ignore: bool,
 }
 
 fn main() -> Result<()> {
@@ -133,6 +145,9 @@ fn main() -> Result<()> {
         args.relative_paths,
         args.exclude_from_tree,
         args.no_codeblock,
+        args.follow_symlinks,
+        args.hidden,
+        args.no_ignore,
     );
 
     let (tree, files) = match create_tree {

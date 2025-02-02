@@ -2,6 +2,7 @@ pub mod claude;
 pub mod filter;
 pub mod git;
 pub mod path;
+pub mod python;
 pub mod template;
 pub mod token;
 

@@ -33,6 +33,9 @@ pub fn traverse_directory(
     relative_paths: bool,
     exclude_from_tree: bool,
     no_codeblock: bool,
+    follow_symlinks: bool,
+    hidden: bool,
+    no_ignore: bool,
 ) -> Result<(String, Vec<serde_json::Value>)> {
     // ~~~ Initialization ~~~
     let mut files = Vec::new();
@@ -41,7 +44,9 @@ pub fn traverse_directory(
 
     // ~~~ Build the Tree ~~~
     let tree = WalkBuilder::new(&canonical_root_path)
-        .git_ignore(true)
+        .hidden(!hidden) // By default hidden=false, so we invert the flag
+        .git_ignore(!no_ignore) // By default no_ignore=false, so we invert the flag
+        .follow_links(follow_symlinks)
         .build()
         .filter_map(|e| e.ok())
         .fold(Tree::new(parent_directory.to_owned()), |mut root, entry| {
